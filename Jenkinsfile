@@ -1,10 +1,8 @@
 pipeline {
     agent any
     environment {
-        // REPLACE WITH YOUR ACTUAL DOCKER HUB USERNAME
-        DOCKER_HUB_USER = 'your_dockerhub_username'
+        DOCKER_HUB_USER = 'abomination14'
         IMAGE_NAME      = 'student-calculator'
-        // Jenkins Credentials ID mapping to your Docker Hub login token
         REGISTRY_CRED   = 'docker-hub-credentials'
         GIT_COMMIT_SHA  = ""
     }
@@ -12,16 +10,15 @@ pipeline {
         stage('Source Code') {
             steps {
                 echo 'Checking out source code from Git...'
-                // Code is pulled automatically by the Jenkins Pipeline job configuration
             }
         }
         stage('Version Control') {
             steps {
                 script {
-                    // Extract short Git commit hash cleanly on Windows
+                    // Extract short Git commit hash cleanly without triggering the sandbox block
                     def gitCommit = bat(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    // Filter down to get only the alphanumeric hash safely
-                    GIT_COMMIT_SHA = gitCommit.lines().last()
+                    // Extract only the alphanumeric hash from the batch console echo wrap
+                    GIT_COMMIT_SHA = gitCommit.split()[-1]
                     echo "Current Git Commit Hash: ${GIT_COMMIT_SHA}"
                 }
             }
@@ -52,7 +49,6 @@ pipeline {
         stage('Deployment') {
             steps {
                 echo 'Updating Kubernetes Manifest and Deploying App...'
-                // Modifies the YAML image reference placeholder with the dynamic commit hash tag
                 bat """
                 powershell -Command "(Get-Content deployment.yaml) -replace 'IMAGE_TAG_PLACEHOLDER', '${GIT_COMMIT_SHA}' | Set-Content deployment.yaml"
                 kubectl apply -f deployment.yaml
