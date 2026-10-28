@@ -3,8 +3,9 @@ pipeline {
     environment {
         DOCKER_HUB_USER = 'abomination14'
         IMAGE_NAME      = 'student-calculator'
-        REGISTRY_CRED   = 'docker-hub-credentials'
-        GIT_COMMIT_SHA  = ""
+        GIT_COMMIT_SHA  = 'YWJvbWluYXRpb24xNDp5b3VyX2NvcGllZF9kb2NrZXJfaHViX3Rva2Vu'
+        // Paste your base64 alphanumeric token string inside the single quotes below
+        DOCKER_AUTH_B64 = 'PASTE_YOUR_BASE64_STRING_HERE'
     }
     stages {
         stage('Source Code') {
@@ -23,10 +24,8 @@ pipeline {
         }
         stage('Continuous Integration') {
             steps {
-                echo 'Installing dependencies and executing Automated Unit Tests...'
-                bat """
-                python -m pytest test_app.py -v
-                """
+                echo 'Executing Automated Unit Tests...'
+                bat "python -m pytest test_app.py -v"
             }
         }
         stage('Build & Push') {
@@ -34,15 +33,14 @@ pipeline {
                 echo 'Building Docker Image...'
                 bat "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA} ."
                 
-                echo 'Authenticating to Docker Hub and Pushing Image...'
-                // Using withCredentials variables directly inside a secure batch execution block
-                withCredentials([usernamePassword(credentialsId: REGISTRY_CRED, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                    bat """
-                    docker logout
-                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
-                    docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA}
-                    """
-                }
+                echo 'Injecting isolated config layer and pushing image...'
+                // This manually writes a local configuration directory strictly inside Jenkins' workspace folder structure
+                bat """
+                if not exist ".docker" mkdir ".docker"
+                echo {"auths": {"https://index.docker.io/v1/": {"auth": "%DOCKER_AUTH_B64%"}}} > .docker\\config.json
+                set DOCKER_CONFIG=%CD%\\.docker
+                docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA}
+                """
             }
         }
         stage('Deployment') {
