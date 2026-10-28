@@ -15,9 +15,7 @@ pipeline {
         stage('Version Control') {
             steps {
                 script {
-                    // Extract short Git commit hash cleanly without triggering the sandbox block
                     def gitCommit = bat(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    // Extract only the alphanumeric hash from the batch console echo wrap
                     GIT_COMMIT_SHA = gitCommit.split()[-1]
                     echo "Current Git Commit Hash: ${GIT_COMMIT_SHA}"
                 }
@@ -27,7 +25,6 @@ pipeline {
             steps {
                 echo 'Installing dependencies and executing Automated Unit Tests...'
                 bat """
-                pip install --user -r requirements.txt
                 python -m pytest test_app.py -v
                 """
             }
@@ -38,9 +35,11 @@ pipeline {
                 bat "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA} ."
                 
                 echo 'Authenticating to Docker Hub and Pushing Image...'
-                withCredentials([usernamePassword(credentialsId: REGISTRY_CRED, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                // Using withCredentials variables directly inside a secure batch execution block
+                withCredentials([usernamePassword(credentialsId: REGISTRY_CRED, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                     bat """
-                    echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+                    docker logout
+                    echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                     docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA}
                     """
                 }
