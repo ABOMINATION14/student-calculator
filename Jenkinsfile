@@ -30,19 +30,15 @@ pipeline {
         }
         stage('Build & Push') {
             steps {
-                echo 'Building Docker Image...'
-                bat "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA} ."
-                
-                echo 'Injecting isolated config layer and pushing image...'
-                // This manually writes a local configuration directory strictly inside Jenkins' workspace folder structure
-                bat """
-                if not exist ".docker" mkdir ".docker"
-                echo {"auths": {"https://index.docker.io/v1/": {"auth": "%DOCKER_AUTH_B64%"}}} > .docker\\config.json
-                set DOCKER_CONFIG=%CD%\\.docker
-                docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:${GIT_COMMIT_SHA}
-                """
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    bat 'docker build -t abomination14/student-calculator:%GIT_COMMIT_SHA% .'
+                    // The pipe (|) must immediately follow the variable to avoid passing whitespace in cmd
+                    bat 'echo %DOCKER_PASS%| docker login -u %DOCKER_USER% --password-stdin'
+                    bat 'docker push abomination14/student-calculator:%GIT_COMMIT_SHA%'
+                }
             }
         }
+
         stage('Deployment') {
             steps {
                 echo 'Updating Kubernetes Manifest and Deploying App...'
