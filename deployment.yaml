@@ -4,7 +4,7 @@ metadata:
   name: student-calculator-deployment
   labels:
     app: student-calculator
-Spec:
+spec:
   replicas: 1
   selector:
     matchLabels:
@@ -16,8 +16,7 @@ Spec:
     spec:
       containers:
       - name: student-calculator-container
-        # Replace 'your_dockerhub_username' with your actual Docker Hub space name
-        image: your_dockerhub_username/student-calculator:IMAGE_TAG_PLACEHOLDER
+        image: abomination14/student-calculator:84e4a23
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
