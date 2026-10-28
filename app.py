@@ -1,14 +1,29 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-# Core Business Logic for Push 1
+# Business logic updated for Push 2 to return 3 values
 def calculate_metrics(marks_list):
     if not marks_list:
-        return 0, 0
+        return 0, 0, "F"
     total = sum(marks_list)
     average = total / len(marks_list)
-    return total, round(average, 2)
+    
+    # Push 2: Grade calculation based on average
+    if average >= 90:
+        grade = "A+"
+    elif average >= 80:
+        grade = "A"
+    elif average >= 70:
+        grade = "B"
+    elif average >= 60:
+        grade = "C"
+    elif average >= 50:
+        grade = "D"
+    else:
+        grade = "F"
+        
+    return total, round(average, 2), grade
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -23,11 +38,12 @@ HTML_TEMPLATE = """
         button { background-color: #2b7a78; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
         button:hover { background-color: #172a3a; }
         .result { margin-top: 20px; padding: 15px; background-color: #e8f1f5; border-radius: 4px; color: #172a3a; }
+        .grade-badge { font-size: 20px; color: #e07a5f; font-weight: bold; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h2>Student Grade Calculator (v1: Metrics)</h2>
+    <h2>Student Grade Calculator (v2: Metrics + Grades)</h2>
     <form method="POST">
         <label>Enter Marks (comma-separated, e.g., 85,90,78):</label>
         <input type="text" name="marks" placeholder="85, 90, 78" required value="{{ input_marks }}">
@@ -39,7 +55,8 @@ HTML_TEMPLATE = """
     {% elif total is not none %}
         <div class="result">
             <strong>Total Marks:</strong> {{ total }} <br>
-            <strong>Average Marks:</strong> {{ average }}
+            <strong>Average Marks:</strong> {{ average }} <br>
+            <strong>Final Grade:</strong> <span class="grade-badge">{{ grade }}</span>
         </div>
     {% endif %}
 </div>
@@ -49,18 +66,18 @@ HTML_TEMPLATE = """
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    total, average = None, None
+    total, average, grade = None, None, None
     error = None
     input_marks = ""
     if request.method == 'POST':
         input_marks = request.form.get('marks', '')
         try:
             marks_list = [float(x.strip()) for x in input_marks.split(',') if x.strip()]
-            total, average = calculate_metrics(marks_list)
+            total, average, grade = calculate_metrics(marks_list)
         except ValueError:
             error = "Invalid input! Please enter numbers separated strictly by commas."
             
-    return render_template_string(HTML_TEMPLATE, total=total, average=average, error=error, input_marks=input_marks)
+    return render_template_string(HTML_TEMPLATE, total=total, average=average, grade=grade, error=error, input_marks=input_marks)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

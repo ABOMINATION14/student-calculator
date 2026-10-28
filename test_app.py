@@ -1,12 +1,21 @@
 import pytest
 from app import calculate_metrics
 
-def test_calculate_metrics_valid():
-    total, average = calculate_metrics([80, 90, 70])
-    assert total == 240
-    assert average == 80.0
+def test_calculate_metrics_valid_grade_a():
+    # Pass a valid list of marks to the function
+    total, average, grade = calculate_metrics([85, 90, 80])
+    assert total == 255
+    assert average == 85.0
+    assert grade == "A"
+
+def test_calculate_metrics_fail_grade():
+    # Pass a failing list of marks to the function
+    total, average, grade = calculate_metrics([40, 30, 45])
+    assert grade == "F"
 
 def test_calculate_metrics_empty():
-    total, average = calculate_metrics([])
+    # Test handling of an empty list input gracefully
+    total, average, grade = calculate_metrics([])
     assert total == 0
     assert average == 0
+    assert grade == "F"
